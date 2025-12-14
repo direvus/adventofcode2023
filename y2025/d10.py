@@ -67,28 +67,37 @@ class Machine:
         return min(self.joltages[x] for x in button)
 
     def find_joltage_presses(self):
-        width = len(self.buttons)
-        c = [1] * width
-        a = [
-                [int(i in b) for b in self.buttons] + [self.joltages[i]]
-                for i in range(len(self.joltages))]
-        m = matrix.row_reduce(a)
+        with timing(f"{self.joltages}"):
+            width = len(self.buttons)
+            a = [
+                    [int(i in b) for b in self.buttons] + [self.joltages[i]]
+                    for i in range(len(self.joltages))]
+            m = matrix.row_reduce(a)
 
-        free = tuple(matrix.find_free(m))
-        options = [range(self.get_max_presses(i) + 1) for i in free]
+            free = tuple(matrix.find_free(m))
+            if not free:
+                solution = matrix.solve_reduced(m)
+                return sum(map(int, solution))
 
-        # Iterate through all viable number of presses for each of the free
-        # buttons, and plug those values back into the matrix to get the total
-        # number of button presses. Return the lowest such valid result
-        result = INF
-        for p in product(*options):
-            s = matrix.solve_values(m, dict(zip(free, p)))
-            if any(x < 0 or not is_integer(x) for x in s):
-                continue
-            total = sum(map(int, s)) + sum(p)
-            if total < result:
+            options = [range(self.get_max_presses(i) + 1) for i in free]
+
+            # Iterate through all viable number of presses for each of the free
+            # buttons, and plug those values back into the matrix to get the total
+            # number of button presses. Return the lowest such valid result
+            result = INF
+            for p in product(*options):
+                total = sum(p)
+                if total >= result:
+                    continue
+                s = matrix.solve_values(m, dict(zip(free, p)))
+                values = s.values()
+                total = sum(map(int, values))
+                if total >= result:
+                    continue
+                if any(x < 0 or not is_integer(x) for x in values):
+                    continue
                 result = total
-        return result
+            return result
 
 
 def parse(stream) -> str:

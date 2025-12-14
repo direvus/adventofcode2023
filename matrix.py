@@ -97,24 +97,22 @@ def find_free(matrix) -> set:
     return columns - set(map(num_leading_zeros, matrix))
 
 
-def solve_values(matrix: list, values: dict) -> list:
+def solve_values(matrix: list, values: dict) -> dict:
     """Set values for variables in the matrix and solve the remainder.
 
-    The original input matrix is not modified.
+    The original input matrix is not modified, but the values dict is.
     """
-    result = []
-    for row in matrix:
-        out = []
-        aug = row[-1]
-        for i in range(len(row) - 1):
-            x = row[i]
-            if i in values:
-                aug -= values[i] * x
-            else:
-                out.append(x)
-        out.append(aug)
-        result.append(out)
-    return solve_reduced(result)
+    width = len(matrix[0]) - 1
+    for row in reversed(matrix):
+        z = num_leading_zeros(row)
+        if z >= width:
+            continue
+        aug = row[width]
+        for j in range(z + 1, width):
+            if j in values:
+                aug -= row[j] * values[j]
+        values[z] = Fraction(aug, row[z])
+    return values
 
 
 def solve_reduced(matrix: list) -> list:
